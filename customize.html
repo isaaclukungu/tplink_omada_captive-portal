@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Portal Customizer</title>
+<style>
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+        background: #f2f2f7;
+        color: #1a1a2e;
+    }
+    header {
+        padding: 20px 24px;
+        background: #ffffff;
+        border-bottom: 1px solid #e2e2ea;
+    }
+    header h1 { font-size: 18px; margin: 0 0 4px; }
+    header p { font-size: 13.5px; color: #6b6b85; margin: 0; }
+
+    .layout {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 24px;
+        padding: 24px;
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+    .panel {
+        flex: 1 1 340px;
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    .panel h2 { font-size: 14px; margin: 0 0 14px; text-transform: uppercase; letter-spacing: 0.04em; color: #6b6b85; }
+
+    .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+    .row label { font-size: 13.5px; }
+    .row input[type="color"] {
+        width: 44px; height: 32px; border: 1px solid #e2e2ea; border-radius: 8px; padding: 0; cursor: pointer;
+    }
+    .row input[type="text"] {
+        flex: 1;
+        max-width: 160px;
+        padding: 7px 10px;
+        border: 1px solid #e2e2ea;
+        border-radius: 8px;
+        font-size: 13px;
+    }
+
+    .mode-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
+    .mode-toggle button {
+        flex: 1;
+        padding: 9px 10px;
+        border-radius: 8px;
+        border: 1px solid #e2e2ea;
+        background: #f7f7fb;
+        font-size: 13px;
+        cursor: pointer;
+        font-weight: 500;
+    }
+    .mode-toggle button.active { background: #1a1a2e; color: #fff; border-color: #1a1a2e; }
+
+    #image-controls { display: none; margin-top: 8px; }
+    #image-controls .hint { font-size: 12px; color: #8a8aa3; margin-top: 6px; line-height: 1.5; }
+    #image-controls input[type="file"] { font-size: 12.5px; margin-bottom: 8px; }
+    #image-controls input[type="text"] { width: 100%; max-width: none; margin-top: 6px; }
+
+    .actions { margin-top: 18px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .actions button {
+        padding: 11px 16px;
+        border-radius: 8px;
+        border: none;
+        font-size: 13.5px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    #download-btn { background: #1a1a2e; color: #fff; }
+    #copy-btn { background: #f0f0f6; color: #1a1a2e; }
+    #reset-btn { background: transparent; color: #b3475c; text-decoration: underline; }
+
+    #css-output {
+        width: 100%;
+        height: 140px;
+        margin-top: 14px;
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        font-size: 11.5px;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #e2e2ea;
+        resize: vertical;
+        color: #4a4a5e;
+    }
+
+    /* --- Live preview column --- */
+    .preview-col {
+        flex: 1 1 340px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .preview-note { font-size: 12.5px; color: #8a8aa3; margin-bottom: 12px; text-align: center; }
+
+    .cz-stage {
+        width: 100%;
+        max-width: 360px;
+        min-height: 480px;
+        border-radius: 20px;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    }
+    .cz-page-bg {
+        position: absolute; inset: 0; z-index: 0; overflow: hidden;
+        background: linear-gradient(135deg, var(--bg-color-1) 0%, var(--bg-color-2) 100%);
+        background-size: cover;
+        background-position: center;
+    }
+    .cz-page-bg.is-gradient::before,
+    .cz-page-bg.is-gradient::after {
+        content: ""; position: absolute; width: 70vmax; height: 70vmax; max-width: 500px; max-height: 500px;
+        border-radius: 50%; filter: blur(50px); opacity: 0.55;
+    }
+    .cz-page-bg.is-gradient::before { background: var(--bg-color-1); top: -20%; left: -15%; animation: czBlobA 22s ease-in-out infinite; }
+    .cz-page-bg.is-gradient::after  { background: var(--bg-color-2); bottom: -25%; right: -20%; animation: czBlobB 26s ease-in-out infinite; }
+    @keyframes czBlobA { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(8%,6%) scale(1.1); } }
+    @keyframes czBlobB { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-7%,-8%) scale(1.12); } }
+
+    .cz-card {
+        position: relative; z-index: 1;
+        width: 100%; max-width: 300px;
+        background: var(--card-bg);
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    }
+    .cz-banner {
+        padding: 20px 20px 18px;
+        background: linear-gradient(135deg, var(--bg-color-1) 0%, var(--bg-color-2) 100%);
+        background-size: 200% 200%;
+        animation: czBannerDrift 16s ease-in-out infinite;
+        color: var(--heading-color);
+    }
+    @keyframes czBannerDrift { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+    .cz-greeting { font-size: 19px; font-weight: 700; margin-bottom: 8px; }
+    .cz-sub-row { display: flex; justify-content: space-between; font-size: 12px; opacity: 0.9; }
+
+    .cz-form { padding: 20px; color: var(--text-color); }
+    .cz-field {
+        position: relative; display: flex; align-items: center;
+        height: 44px; border-radius: 999px; background: #f5f5fa;
+        border: 1px solid #e4e4ef; margin-bottom: 14px;
+    }
+    .cz-field svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #a3a3ba; }
+    .cz-field-text { padding-left: 40px; font-size: 13px; color: #9a9ab2; }
+    .cz-button {
+        width: 100%; height: 44px; border: none; border-radius: 999px;
+        background: var(--button-color); color: var(--button-text-color);
+        font-weight: 600; font-size: 13.5px; letter-spacing: 0.03em; cursor: default;
+    }
+</style>
+</head>
+<body>
+
+<header>
+    <h1>Portal Color &amp; Background Customizer</h1>
+    <p>Adjust colors and background style below, then download your finished <code>index.css</code>. No internet connection needed.</p>
+</header>
+
+<div class="layout">
+
+    <div class="panel">
+        <h2>Colors</h2>
+
+        <div class="row">
+            <label for="c-bg1">Primary color (banner + background)</label>
+            <input type="color" id="c-bg1" value="#5b4bff">
+        </div>
+        <div class="row">
+            <label for="c-bg2">Secondary color (banner + background)</label>
+            <input type="color" id="c-bg2" value="#241259">
+        </div>
+        <div class="row">
+            <label for="c-card">Card background</label>
+            <input type="color" id="c-card" value="#ffffff">
+        </div>
+        <div class="row">
+            <label for="c-text">Form text color</label>
+            <input type="color" id="c-text" value="#241443">
+        </div>
+        <div class="row">
+            <label for="c-heading">Banner text color</label>
+            <input type="color" id="c-heading" value="#ffffff">
+        </div>
+        <div class="row">
+            <label for="c-button">CONNECT button color</label>
+            <input type="color" id="c-button" value="#3d2178">
+        </div>
+        <div class="row">
+            <label for="c-buttontext">Button text color</label>
+            <input type="color" id="c-buttontext" value="#ffffff">
+        </div>
+        <div class="row">
+            <label for="c-accent">Accent color (links, focus)</label>
+            <input type="color" id="c-accent" value="#5b4bff">
+        </div>
+        <div class="row">
+            <label for="c-error">Error message color</label>
+            <input type="color" id="c-error" value="#e0245a">
+        </div>
+
+        <h2 style="margin-top:22px;">Page Background</h2>
+        <div class="mode-toggle">
+            <button type="button" id="mode-gradient" class="active">Gradient (animated)</button>
+            <button type="button" id="mode-image">Background Image</button>
+        </div>
+
+        <div id="image-controls">
+            <input type="file" id="bg-image-file" accept="image/*">
+            <label for="bg-filename" style="font-size:12.5px; display:block; margin-bottom:4px;">Filename to reference in CSS:</label>
+            <input type="text" id="bg-filename" value="background.jpg">
+            <div class="hint">
+                This preview uses the image you pick, but the downloaded CSS only
+                references it by filename. You must copy that same image file into
+                your portal folder (same name as above) alongside index.html.
+            </div>
+        </div>
+
+        <div class="actions">
+            <button id="download-btn">Download index.css</button>
+            <button id="copy-btn">Copy CSS</button>
+            <button id="reset-btn">Reset to defaults</button>
+        </div>
+
+        <textarea id="css-output" readonly></textarea>
+    </div>
+
+    <div class="preview-col">
+        <div class="preview-note">Live preview — updates as you adjust the controls</div>
+        <div class="cz-stage">
+            <div class="cz-page-bg is-gradient" id="cz-page-bg"></div>
+            <div class="cz-card">
+                <div class="cz-banner">
+                    <div class="cz-greeting">Good Day</div>
+                    <div class="cz-sub-row">
+                        <span>Today is Wednesday</span>
+                        <span>15:21:37</span>
+                    </div>
+                </div>
+                <div class="cz-form">
+                    <div class="cz-field">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5v2M15 11v2M15 17v2"/><path d="M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4V7a2 2 0 0 1 2-2z"/></svg>
+                        <span class="cz-field-text">Voucher Code</span>
+                    </div>
+                    <button class="cz-button">CONNECT</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const ids = ['c-bg1','c-bg2','c-card','c-text','c-heading','c-button','c-buttontext','c-accent','c-error'];
+    const varNames = {
+        'c-bg1': '--bg-color-1', 'c-bg2': '--bg-color-2', 'c-card': '--card-bg',
+        'c-text': '--text-color', 'c-heading': '--heading-color', 'c-button': '--button-color',
+        'c-buttontext': '--button-text-color', 'c-accent': '--accent-color', 'c-error': '--error-color'
+    };
+    const defaults = {
+        'c-bg1': '#5b4bff', 'c-bg2': '#241259', 'c-card': '#ffffff', 'c-text': '#241443',
+        'c-heading': '#ffffff', 'c-button': '#3d2178', 'c-buttontext': '#ffffff',
+        'c-accent': '#5b4bff', 'c-error': '#e0245a'
+    };
+
+    let bgMode = 'gradient'; // 'gradient' | 'image'
+    let bgFilename = 'background.jpg';
+    let bgPreviewUrl = null;
+
+    const stage = document.getElementById('cz-page-bg');
+
+    function applyPreviewVars() {
+        ids.forEach(id => {
+            const val = document.getElementById(id).value;
+            document.documentElement.style.setProperty(varNames[id], val);
+        });
+        // scope vars to the preview stage specifically too
+        ids.forEach(id => {
+            const val = document.getElementById(id).value;
+            document.querySelector('.cz-stage').style.setProperty(varNames[id], val);
+        });
+
+        if (bgMode === 'image' && bgPreviewUrl) {
+            stage.classList.remove('is-gradient');
+            stage.style.backgroundImage = `url('${bgPreviewUrl}')`;
+            stage.style.background = `url('${bgPreviewUrl}') center / cover no-repeat`;
+        } else {
+            stage.classList.add('is-gradient');
+            stage.style.background = '';
+            stage.style.backgroundImage = '';
+        }
+        updateOutput();
+    }
+
+    ids.forEach(id => document.getElementById(id).addEventListener('input', applyPreviewVars));
+
+    document.getElementById('mode-gradient').addEventListener('click', function () {
+        bgMode = 'gradient';
+        this.classList.add('active');
+        document.getElementById('mode-image').classList.remove('active');
+        document.getElementById('image-controls').style.display = 'none';
+        applyPreviewVars();
+    });
+    document.getElementById('mode-image').addEventListener('click', function () {
+        bgMode = 'image';
+        this.classList.add('active');
+        document.getElementById('mode-gradient').classList.remove('active');
+        document.getElementById('image-controls').style.display = 'block';
+        applyPreviewVars();
+    });
+    document.getElementById('bg-image-file').addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function (ev) {
+            bgPreviewUrl = ev.target.result;
+            applyPreviewVars();
+        };
+        reader.readAsDataURL(file);
+    });
+    document.getElementById('bg-filename').addEventListener('input', function (e) {
+        bgFilename = e.target.value.trim() || 'background.jpg';
+        updateOutput();
+    });
+
+    document.getElementById('reset-btn').addEventListener('click', function () {
+        ids.forEach(id => { document.getElementById(id).value = defaults[id]; });
+        bgMode = 'gradient';
+        document.getElementById('mode-gradient').classList.add('active');
+        document.getElementById('mode-image').classList.remove('active');
+        document.getElementById('image-controls').style.display = 'none';
+        applyPreviewVars();
+    });
+
+    function generateCSS() {
+        const v = {};
+        ids.forEach(id => { v[id] = document.getElementById(id).value; });
+
+        const pageBgRules = bgMode === 'image'
+? `.page-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+    background-image: url('${bgFilename}');
+    background-size: cover;
+    background-position: center;
+}
+.page-bg::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 5, 25, 0.35);
+}`
+: `.page-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+    background: linear-gradient(135deg, var(--bg-color-1) 0%, var(--bg-color-2) 100%);
+}
+.page-bg::before,
+.page-bg::after {
+    content: "";
+    position: absolute;
+    width: 70vmax;
+    height: 70vmax;
+    border-radius: 50%;
+    filter: blur(70px);
+    opacity: 0.55;
+    will-change: transform;
+}
+.page-bg::before {
+    background: var(--bg-color-1);
+    top: -25%;
+    left: -15%;
+    animation: blobDriftA 22s ease-in-out infinite;
+}
+.page-bg::after {
+    background: var(--bg-color-2);
+    bottom: -30%;
+    right: -20%;
+    animation: blobDriftB 26s ease-in-out infinite;
+}
+@keyframes blobDriftA {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50%      { transform: translate(8%, 6%) scale(1.1); }
+}
+@keyframes blobDriftB {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50%      { transform: translate(-7%, -8%) scale(1.12); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .page-bg::before, .page-bg::after { animation: none; }
+}`;
+
+        return `/* ================================================================
+   EASY CUSTOMIZATION — edit only this block, or use the customizer
+   tool (customize.html) that shipped alongside this file.
+   ================================================================ */
+:root {
+    --bg-color-1: ${v['c-bg1']};
+    --bg-color-2: ${v['c-bg2']};
+    --card-bg: ${v['c-card']};
+    --text-color: ${v['c-text']};
+    --heading-color: ${v['c-heading']};
+    --button-color: ${v['c-button']};
+    --button-text-color: ${v['c-buttontext']};
+    --accent-color: ${v['c-accent']};
+    --error-color: ${v['c-error']};
+}
+/* ================================================================ */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+
+body.portal {
+    font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+    min-height: 100%;
+    color: var(--text-color);
+    -webkit-font-smoothing: antialiased;
+}
+
+${pageBgRules}
+
+/* --- Layout --- */
+.center-wrap {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px;
+    position: relative;
+    z-index: 1;
+}
+
+.card {
+    width: 100%;
+    max-width: 380px;
+    background: var(--card-bg);
+    border-radius: 22px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+/* --- Greeting banner (top of card) --- */
+.card-banner {
+    padding: 26px 24px 22px;
+    background: linear-gradient(135deg, var(--bg-color-1) 0%, var(--bg-color-2) 100%);
+    background-size: 200% 200%;
+    animation: bannerDrift 16s ease-in-out infinite;
+    color: var(--heading-color);
+}
+@keyframes bannerDrift {
+    0%, 100% { background-position: 0% 50%; }
+    50%      { background-position: 100% 50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .card-banner { animation: none; }
+}
+
+.greeting-text {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 10px;
+}
+.banner-sub-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+    opacity: 0.92;
+}
+.time-text { font-variant-numeric: tabular-nums; font-weight: 500; }
+
+/* --- Form area --- */
+.card-form {
+    padding: 26px 24px 24px;
+}
+
+.oper-hint {
+    display: none;
+    color: var(--error-color);
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+.oper-hint:not(:empty) { display: block; }
+
+.oper-section-item { height: 48px; margin-bottom: 12px; }
+
+.hotspot-section { margin-bottom: 2px; }
+.select-wrap { position: relative; }
+.select {
+    width: 100%;
+    height: 48px;
+    padding: 0 40px 0 16px;
+    border-radius: 999px;
+    border: 1px solid #e4e4ef;
+    background: #f5f5fa;
+    color: var(--text-color);
+    font-family: inherit;
+    font-size: 14.5px;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+.select:focus { border-color: var(--accent-color); }
+.select-chevron {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #8a8aa3;
+    pointer-events: none;
+}
+
+.field { margin-bottom: 12px; position: relative; display: flex; align-items: center; }
+.field-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #a3a3ba;
+    display: flex;
+    pointer-events: none;
+}
+#input-voucher .input { padding-left: 44px; }
+
+.input,
+.password {
+    width: 100%;
+    height: 48px;
+    padding: 0 16px;
+    border-radius: 999px;
+    border: 1px solid #e4e4ef;
+    background: #f5f5fa;
+    color: var(--text-color);
+    font-family: inherit;
+    font-size: 14.5px;
+    outline: none;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+.input::placeholder { color: #9a9ab2; }
+.input:focus, .password:focus {
+    border-color: var(--accent-color);
+    background: #ffffff;
+}
+
+.phone-field { display: flex; align-items: center; gap: 8px; }
+.add {
+    height: 48px;
+    width: 40px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: #f5f5fa;
+    border: 1px solid #e4e4ef;
+    color: var(--text-color);
+    font-weight: 600;
+}
+.country-code-input { width: 64px; flex-shrink: 0; text-align: center; padding: 0 4px; }
+#phone-number { flex: 1; }
+
+.verify-field { display: flex; align-items: center; gap: 8px; }
+#verify-code { flex: 1; }
+.get-code-button {
+    height: 48px;
+    padding: 0 16px;
+    white-space: nowrap;
+    border-radius: 999px;
+    border: none;
+    background: var(--accent-color);
+    color: #fff;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.2s ease;
+}
+.get-code-button:hover { filter: brightness(1.06); }
+
+#button-area { margin-top: 6px; }
+.button {
+    width: 100%;
+    height: 50px;
+    border: none;
+    border-radius: 999px;
+    background: var(--button-color);
+    color: var(--button-text-color);
+    font-family: inherit;
+    font-size: 15.5px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: transform 0.12s ease, filter 0.2s ease;
+}
+.button:hover { transform: translateY(-1px); filter: brightness(1.05); }
+.button:active { transform: translateY(0); }
+
+#form-auth-msg {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: rgba(20, 12, 45, 0.55);
+    padding: 5%;
+    box-sizing: border-box;
+    color: var(--text-color);
+    font-size: 14px;
+}
+#form-auth-outer {
+    width: 60%;
+    max-height: 90vh;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 16px;
+    box-sizing: border-box;
+    padding: 32px 5%;
+    position: relative;
+    overflow: auto;
+}
+#form-auth-close {
+    position: absolute;
+    right: 16px;
+    top: 16px;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    opacity: 0.5;
+}
+#form-auth-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+#form-auth-note { color: #6b6b85; margin-bottom: 12px; }
+#form-auth-submit {
+    display: inline-block;
+    color: #fff;
+    background: var(--button-color);
+    height: 40px;
+    line-height: 40px;
+    padding: 0 22px;
+    border-radius: 999px;
+    text-decoration: none;
+    font-weight: 600;
+}
+#form-auth-content .card-container { margin-bottom: 18px; }
+#form-auth-content .title { font-weight: 600; margin-bottom: 10px; }
+#form-auth-content .choice-outer { line-height: 30px; }
+#form-auth-content .input,
+#form-auth-content .combobox { width: 100%; }
+
+@media (max-width: 640px) {
+    #form-auth-outer { width: 92%; padding: 28px 5%; }
+}
+
+@media (max-width: 460px) {
+    .center-wrap { padding: 18px; }
+    .card { border-radius: 18px; }
+    .card-banner { padding: 22px 20px 18px; }
+    .card-form { padding: 22px 20px 20px; }
+    .greeting-text { font-size: 21px; }
+}
+`;
+    }
+
+    function updateOutput() {
+        document.getElementById('css-output').value = generateCSS();
+    }
+
+    document.getElementById('download-btn').addEventListener('click', function () {
+        const css = generateCSS();
+        const blob = new Blob([css], { type: 'text/css' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'index.css';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('copy-btn').addEventListener('click', function () {
+        const output = document.getElementById('css-output');
+        output.select();
+        document.execCommand('copy');
+        const btn = this;
+        const original = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = original; }, 1200);
+    });
+
+    // init
+    applyPreviewVars();
+</script>
+
+</body>
+</html>
